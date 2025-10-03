@@ -1,0 +1,19 @@
+{
+    "DataSourceFile": "activity_data.json",
+    "CsvExportFile": "activity_export.csv",
+    "LoopIntervalSeconds": 1.0,
+    "SaveIntervalSeconds": 120,
+    "ExcludedPaths": [
+        "Content Center",
+        "Design Accelerator",
+        "\\Library\\",
+        "\\Templates\\",
+        "Autodesk\\Inventor",
+        "Program Files"
+    ],
+    "ActivityWeights": {
+        "MouseClick": 3.0,
+        "KeyPress": 3.0,
+        "Continuous": 5.0
+    }
+}
