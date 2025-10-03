@@ -35,11 +35,31 @@ function Import-TrackingData {
                     Write-Host "Loaded legacy format tracking data" -ForegroundColor Yellow
                 }
                 
-                # Convert to hashtable
+                # Convert to hashtable - handle both old and new formats
                 $sourceData.PSObject.Properties | ForEach-Object {
-                    $trackingData[$_.Name] = @{
-                        TotalActiveSeconds = $_.Value.TotalActiveSeconds
-                        LastSeenTime = $_.Value.LastSeenTime
+                    if ($_.Value.PSObject.Properties.Name -contains "DailyActivity") {
+                        # New format: per-day tracking
+                        $dailyData = @{}
+                        $_.Value.DailyActivity.PSObject.Properties | ForEach-Object {
+                            $dailyData[$_.Name] = @{
+                                TotalActiveSeconds = $_.Value.TotalActiveSeconds
+                                LastSeenTime = $_.Value.LastSeenTime
+                            }
+                        }
+                        $trackingData[$_.Name] = @{
+                            DailyActivity = $dailyData
+                        }
+                    } else {
+                        # Old format: convert to new format with today's date
+                        $today = (Get-Date).ToString("yyyy-MM-dd")
+                        $trackingData[$_.Name] = @{
+                            DailyActivity = @{
+                                $today = @{
+                                    TotalActiveSeconds = $_.Value.TotalActiveSeconds
+                                    LastSeenTime = $_.Value.LastSeenTime
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -141,20 +161,29 @@ function Export-TrackingDataToCsv {
         $csvOutput = $TrackingData.GetEnumerator() | ForEach-Object {
             $fileName = if ($_.Name) { Split-Path $_.Name -Leaf } else { "Unknown" }
             $fullPath = $_.Name
-            $totalSeconds = if ($_.Value.TotalActiveSeconds) { [math]::Round($_.Value.TotalActiveSeconds, 2) } else { 0 }
-            $lastSeen = if ($_.Value.LastSeenTime) { $_.Value.LastSeenTime } else { "Never" }
-            $totalMinutes = [math]::Round($totalSeconds / 60, 2)
-            $totalHours = [math]::Round($totalSeconds / 3600, 2)
             
-            [PSCustomObject]@{
-                FileName = $fileName
-                FullPath = $fullPath
-                TotalActiveSeconds = $totalSeconds
-                TotalActiveMinutes = $totalMinutes
-                TotalActiveHours = $totalHours
-                LastSeenTime = $lastSeen
+            # Process each day for this file
+            if ($_.Value.DailyActivity) {
+                $_.Value.DailyActivity.GetEnumerator() | ForEach-Object {
+                    $date = $_.Name
+                    $dayData = $_.Value
+                    $totalSeconds = if ($dayData.TotalActiveSeconds) { [math]::Round($dayData.TotalActiveSeconds, 2) } else { 0 }
+                    $lastSeen = if ($dayData.LastSeenTime) { $dayData.LastSeenTime } else { "Never" }
+                    $totalMinutes = [math]::Round($totalSeconds / 60, 2)
+                    $totalHours = [math]::Round($totalSeconds / 3600, 2)
+                    
+                    [PSCustomObject]@{
+                        Date = $date
+                        FileName = $fileName
+                        FullPath = $fullPath
+                        TotalActiveSeconds = $totalSeconds
+                        TotalActiveMinutes = $totalMinutes
+                        TotalActiveHours = $totalHours
+                        LastSeenTime = $lastSeen
+                    }
+                }
             }
-        } | Sort-Object TotalActiveSeconds -Descending
+        } | Sort-Object Date, TotalActiveSeconds -Descending
         
         # Export to CSV
         $csvOutput | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8
@@ -190,24 +219,46 @@ function Get-TrackingDataSummary {
     
     $fileCount = $TrackingData.Count
     
-    # Use a robust foreach loop instead of Measure-Object to prevent errors
-    # if a record is missing the TotalActiveSeconds property.
+    # Calculate total seconds across all files and all days
     $totalSeconds = 0
-    foreach ($record in $TrackingData.Values) {
-        if ($record -and $record.ContainsKey('TotalActiveSeconds')) {
-            $totalSeconds += $record.TotalActiveSeconds
+    $totalDays = 0
+    foreach ($fileData in $TrackingData.Values) {
+        if ($fileData -and $fileData.ContainsKey('DailyActivity')) {
+            foreach ($dayData in $fileData.DailyActivity.Values) {
+                if ($dayData -and $dayData.ContainsKey('TotalActiveSeconds')) {
+                    $totalSeconds += $dayData.TotalActiveSeconds
+                    $totalDays++
+                }
+            }
         }
     }
     
     $totalHours = [math]::Round($totalSeconds / 3600, 2)
     
+    # Find most active file (sum across all days)
+    $mostActiveFile = "None"
+    if ($fileCount -gt 0) {
+        $maxSeconds = 0
+        foreach ($entry in $TrackingData.GetEnumerator()) {
+            $fileTotal = 0
+            if ($entry.Value.DailyActivity) {
+                foreach ($dayData in $entry.Value.DailyActivity.Values) {
+                    $fileTotal += $dayData.TotalActiveSeconds
+                }
+            }
+            if ($fileTotal -gt $maxSeconds) {
+                $maxSeconds = $fileTotal
+                $mostActiveFile = $entry.Name
+            }
+        }
+    }
+    
     return @{
         FileCount = $fileCount
+        TotalDays = $totalDays
         TotalActiveSeconds = $totalSeconds
         TotalActiveHours = $totalHours
-        MostActiveFile = if ($fileCount -gt 0) {
-            ($TrackingData.GetEnumerator() | Sort-Object { $_.Value.TotalActiveSeconds } -Descending | Select-Object -First 1).Name
-        } else { "None" }
+        MostActiveFile = $mostActiveFile
     }
 }
 

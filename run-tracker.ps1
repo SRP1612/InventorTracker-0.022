@@ -118,6 +118,7 @@ try {
     $summary = Get-TrackingDataSummary -TrackingData $trackingData
     Write-Host "Initial data summary:" -ForegroundColor Yellow
     Write-Host "  Files tracked: $($summary.FileCount)" -ForegroundColor Gray
+    Write-Host "  Days of data: $($summary.TotalDays)" -ForegroundColor Gray
     Write-Host "  Total time tracked: $($summary.TotalActiveHours) hours" -ForegroundColor Gray
     #if ($summary.MostActiveFile -ne "None") {
     #    $mostActiveFileName = Split-Path $summary.MostActiveFile -Leaf
@@ -184,13 +185,22 @@ try {
                     $hasActivity = ($activity.MouseClicks -gt 0) -or ($activity.KeyPresses -gt 0) -or $activity.IsContinuous
                     
                     if ($hasActivity) {
+                        $today = (Get-Date).ToString("yyyy-MM-dd")
+                        
                         # Initialize tracking for new files
                         if (-not $trackingData.ContainsKey($activeFile)) {
                             $trackingData[$activeFile] = @{
+                                DailyActivity = @{}
+                            }
+                        }
+                        
+                        # Initialize tracking for today if not exists
+                        if (-not $trackingData[$activeFile].DailyActivity.ContainsKey($today)) {
+                            $trackingData[$activeFile].DailyActivity[$today] = @{
                                 TotalActiveSeconds = 0
                                 LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                             }
-                            Write-Host "Started tracking new file: $(Split-Path $activeFile -Leaf)" -ForegroundColor Green
+                            Write-Host "Started tracking new file for $today`: $(Split-Path $activeFile -Leaf)" -ForegroundColor Green
                         }
                         
                         # Calculate time to add based on activity weights
@@ -201,13 +211,14 @@ try {
                             $timeToAdd += $config.ActivityWeights.Continuous
                         }
                         
-                        # Update tracking data
-                        $trackingData[$activeFile].TotalActiveSeconds += $timeToAdd
-                        $trackingData[$activeFile].LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                        # Update tracking data for today
+                        $trackingData[$activeFile].DailyActivity[$today].TotalActiveSeconds += $timeToAdd
+                        $trackingData[$activeFile].DailyActivity[$today].LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                         
                         $fileName = Split-Path $activeFile -Leaf
                         $timestamp = Get-Date -Format "HH:mm:ss"
-                        Write-Host "[$timestamp] Activity in $fileName`: +$([math]::Round($timeToAdd, 2))s (Total: $([math]::Round($trackingData[$activeFile].TotalActiveSeconds, 2))s)" -ForegroundColor Green
+                        $todayTotal = $trackingData[$activeFile].DailyActivity[$today].TotalActiveSeconds
+                        Write-Host "[$timestamp] Activity in $fileName`: +$([math]::Round($timeToAdd, 2))s (Today: $([math]::Round($todayTotal, 2))s)" -ForegroundColor Green
                         Write-Verbose "Activity detected in $fileName`: +$([math]::Round($timeToAdd, 2))s (Mouse: $($activity.MouseClicks), Keys: $($activity.KeyPresses), Continuous: $($activity.IsContinuous))"
                     }
                 }
@@ -289,6 +300,7 @@ finally {
             Write-Host ""
             Write-Host "=== Final Summary ===" -ForegroundColor Green
             Write-Host "Files tracked: $($summary.FileCount)" -ForegroundColor Cyan
+            Write-Host "Days of data: $($summary.TotalDays)" -ForegroundColor Cyan
             Write-Host "Total active time: $($summary.TotalActiveHours) hours" -ForegroundColor Cyan
             #if ($summary.MostActiveFile -ne "None") {
             #    $mostActiveFileName = Split-Path $summary.MostActiveFile -Leaf
