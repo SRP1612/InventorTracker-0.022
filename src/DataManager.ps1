@@ -122,7 +122,8 @@ function Export-TrackingData {
         # Move to final location (atomic on same filesystem)
         Move-Item -Path $tempPath -Destination $FilePath -Force
         
-        Write-Verbose "Successfully saved tracking data to $FilePath"
+        # Always show a visible confirmation in the console when a save completes
+        Write-Host "Successfully saved tracking data to $FilePath" -ForegroundColor Cyan
     }
     catch {
         Write-Warning "Failed to save tracking data to $FilePath`: $_"

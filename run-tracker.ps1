@@ -92,8 +92,15 @@ try {
         $userName = $env:USERNAME
         $baseName = [System.IO.Path]::GetFileNameWithoutExtension($BaseFilePath)
         $extension = [System.IO.Path]::GetExtension($BaseFilePath)
-        
-        return "$baseName-$computerName-$userName$extension"
+        # Determine directory to place the unique file. If BaseFilePath includes a directory, use it.
+        $dir = [System.IO.Path]::GetDirectoryName($BaseFilePath)
+        if ([string]::IsNullOrWhiteSpace($dir)) {
+            # Use the script root as default
+            $dir = $ScriptRoot
+        }
+
+        $uniqueName = "$baseName-$computerName-$userName$extension"
+        return [System.IO.Path]::Combine($dir, $uniqueName)
     }
     
     # Generate unique filenames for this session
@@ -282,19 +289,29 @@ finally {
     Write-Host "Shutting down tracker..." -ForegroundColor Yellow
     
     try {
-        # Load the latest data one last time for final export
-        Write-Host "Loading final tracking data..." -ForegroundColor Cyan
-        $finalData = Import-TrackingData -FilePath $uniqueJsonPath
-        
-        if ($finalData.Count -gt 0) {
+        # Prefer using the in-memory tracking data collected during this session.
+        Write-Host "Preparing final tracking data for export..." -ForegroundColor Cyan
+        $finalData = $trackingData
+
+        # If in-memory data is empty (e.g. never collected or lost), try loading from disk as a fallback
+        if (-not $finalData -or $finalData.Count -eq 0) {
+            Write-Host "No in-memory tracking data found, attempting to load from disk..." -ForegroundColor Yellow
+            if (Test-Path $uniqueJsonPath) {
+                $finalData = Import-TrackingData -FilePath $uniqueJsonPath
+            } else {
+                $finalData = @{}
+            }
+        }
+
+        if ($finalData -and $finalData.Count -gt 0) {
             # Export final data to JSON (backup)
             Write-Host "Saving final tracking data..." -ForegroundColor Cyan
             Export-TrackingData -FilePath $uniqueJsonPath -Data $finalData
-            
+
             # Export to CSV
             Write-Host "Exporting final CSV report..." -ForegroundColor Cyan
             Export-TrackingDataToCsv -CsvPath $uniqueCsvPath -TrackingData $finalData
-            
+
             # Display final summary
             $summary = Get-TrackingDataSummary -TrackingData $finalData
             Write-Host ""
