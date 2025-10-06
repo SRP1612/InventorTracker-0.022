@@ -92,8 +92,15 @@ try {
         $userName = $env:USERNAME
         $baseName = [System.IO.Path]::GetFileNameWithoutExtension($BaseFilePath)
         $extension = [System.IO.Path]::GetExtension($BaseFilePath)
-        
-        return "$baseName-$computerName-$userName$extension"
+        # Determine directory to place the unique file. If BaseFilePath includes a directory, use it.
+        $dir = [System.IO.Path]::GetDirectoryName($BaseFilePath)
+        if ([string]::IsNullOrWhiteSpace($dir)) {
+            # Use the script root as default
+            $dir = $ScriptRoot
+        }
+
+        $uniqueName = "$baseName-$computerName-$userName$extension"
+        return [System.IO.Path]::Combine($dir, $uniqueName)
     }
     
     # Generate unique filenames for this session
@@ -118,6 +125,7 @@ try {
     $summary = Get-TrackingDataSummary -TrackingData $trackingData
     Write-Host "Initial data summary:" -ForegroundColor Yellow
     Write-Host "  Files tracked: $($summary.FileCount)" -ForegroundColor Gray
+    Write-Host "  Days of data: $($summary.TotalDays)" -ForegroundColor Gray
     Write-Host "  Total time tracked: $($summary.TotalActiveHours) hours" -ForegroundColor Gray
     #if ($summary.MostActiveFile -ne "None") {
     #    $mostActiveFileName = Split-Path $summary.MostActiveFile -Leaf
@@ -184,13 +192,22 @@ try {
                     $hasActivity = ($activity.MouseClicks -gt 0) -or ($activity.KeyPresses -gt 0) -or $activity.IsContinuous
                     
                     if ($hasActivity) {
+                        $today = (Get-Date).ToString("yyyy-MM-dd")
+                        
                         # Initialize tracking for new files
                         if (-not $trackingData.ContainsKey($activeFile)) {
                             $trackingData[$activeFile] = @{
+                                DailyActivity = @{}
+                            }
+                        }
+                        
+                        # Initialize tracking for today if not exists
+                        if (-not $trackingData[$activeFile].DailyActivity.ContainsKey($today)) {
+                            $trackingData[$activeFile].DailyActivity[$today] = @{
                                 TotalActiveSeconds = 0
                                 LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                             }
-                            Write-Host "Started tracking new file: $(Split-Path $activeFile -Leaf)" -ForegroundColor Green
+                            Write-Host "Started tracking new file for $today`: $(Split-Path $activeFile -Leaf)" -ForegroundColor Green
                         }
                         
                         # Calculate time to add based on activity weights
@@ -201,13 +218,14 @@ try {
                             $timeToAdd += $config.ActivityWeights.Continuous
                         }
                         
-                        # Update tracking data
-                        $trackingData[$activeFile].TotalActiveSeconds += $timeToAdd
-                        $trackingData[$activeFile].LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                        # Update tracking data for today
+                        $trackingData[$activeFile].DailyActivity[$today].TotalActiveSeconds += $timeToAdd
+                        $trackingData[$activeFile].DailyActivity[$today].LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                         
                         $fileName = Split-Path $activeFile -Leaf
                         $timestamp = Get-Date -Format "HH:mm:ss"
-                        Write-Host "[$timestamp] Activity in $fileName`: +$([math]::Round($timeToAdd, 2))s (Total: $([math]::Round($trackingData[$activeFile].TotalActiveSeconds, 2))s)" -ForegroundColor Green
+                        $todayTotal = $trackingData[$activeFile].DailyActivity[$today].TotalActiveSeconds
+                        Write-Host "[$timestamp] Activity in $fileName`: +$([math]::Round($timeToAdd, 2))s (Today: $([math]::Round($todayTotal, 2))s)" -ForegroundColor Green
                         Write-Verbose "Activity detected in $fileName`: +$([math]::Round($timeToAdd, 2))s (Mouse: $($activity.MouseClicks), Keys: $($activity.KeyPresses), Continuous: $($activity.IsContinuous))"
                     }
                 }
@@ -271,24 +289,35 @@ finally {
     Write-Host "Shutting down tracker..." -ForegroundColor Yellow
     
     try {
-        # Load the latest data one last time for final export
-        Write-Host "Loading final tracking data..." -ForegroundColor Cyan
-        $finalData = Import-TrackingData -FilePath $uniqueJsonPath
-        
-        if ($finalData.Count -gt 0) {
+        # Prefer using the in-memory tracking data collected during this session.
+        Write-Host "Preparing final tracking data for export..." -ForegroundColor Cyan
+        $finalData = $trackingData
+
+        # If in-memory data is empty (e.g. never collected or lost), try loading from disk as a fallback
+        if (-not $finalData -or $finalData.Count -eq 0) {
+            Write-Host "No in-memory tracking data found, attempting to load from disk..." -ForegroundColor Yellow
+            if (Test-Path $uniqueJsonPath) {
+                $finalData = Import-TrackingData -FilePath $uniqueJsonPath
+            } else {
+                $finalData = @{}
+            }
+        }
+
+        if ($finalData -and $finalData.Count -gt 0) {
             # Export final data to JSON (backup)
             Write-Host "Saving final tracking data..." -ForegroundColor Cyan
             Export-TrackingData -FilePath $uniqueJsonPath -Data $finalData
-            
+
             # Export to CSV
             Write-Host "Exporting final CSV report..." -ForegroundColor Cyan
             Export-TrackingDataToCsv -CsvPath $uniqueCsvPath -TrackingData $finalData
-            
+
             # Display final summary
             $summary = Get-TrackingDataSummary -TrackingData $finalData
             Write-Host ""
             Write-Host "=== Final Summary ===" -ForegroundColor Green
             Write-Host "Files tracked: $($summary.FileCount)" -ForegroundColor Cyan
+            Write-Host "Days of data: $($summary.TotalDays)" -ForegroundColor Cyan
             Write-Host "Total active time: $($summary.TotalActiveHours) hours" -ForegroundColor Cyan
             #if ($summary.MostActiveFile -ne "None") {
             #    $mostActiveFileName = Split-Path $summary.MostActiveFile -Leaf

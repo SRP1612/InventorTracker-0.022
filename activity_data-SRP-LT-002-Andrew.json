@@ -1,0 +1,26 @@
+﻿{
+    "Metadata":  {
+                     "UserName":  "Andrew",
+                     "ComputerName":  "SRP-LT-002",
+                     "Version":  "1.0",
+                     "ExportTime":  "2025-10-06 10:11:02"
+                 },
+    "TrackingData":  {
+                         "G:\\Shared drives\\Sales Orders\\Training\\SNDBX 25\\Drafting\\AJF\\BeamTemplates\\ILBeams.ipt":  {
+                                                                                                                                "DailyActivity":  {
+                                                                                                                                                      "2025-10-06":  {
+                                                                                                                                                                         "TotalActiveSeconds":  162.0,
+                                                                                                                                                                         "LastSeenTime":  "2025-10-06 10:09:11"
+                                                                                                                                                                     }
+                                                                                                                                                  }
+                                                                                                                            },
+                         "G:\\Shared drives\\Sales Orders\\Training\\SNDBX 25\\Drafting\\AJF\\GalvWtTest\\_GalvWtTest.iam":  {
+                                                                                                                                 "DailyActivity":  {
+                                                                                                                                                       "2025-10-06":  {
+                                                                                                                                                                          "LastSeenTime":  "2025-10-06 10:06:31",
+                                                                                                                                                                          "TotalActiveSeconds":  134.0
+                                                                                                                                                                      }
+                                                                                                                                                   }
+                                                                                                                             }
+                     }
+}
