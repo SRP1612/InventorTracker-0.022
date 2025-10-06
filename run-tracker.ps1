@@ -9,8 +9,8 @@ Set-Location $ScriptRoot
 # Display banner
 Write-Host ""
 Write-Host "=====================================" -ForegroundColor Cyan
-Write-Host "  Inventor Activity Tracker v.021" -ForegroundColor White
-Write-Host "     Headless Edition" -ForegroundColor Gray
+Write-Host "  Multi-App Activity Tracker  " -ForegroundColor White
+Write-Host "     Configurable Edition" -ForegroundColor Gray
 Write-Host "=====================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -112,7 +112,7 @@ try {
     $lastSaveTime = [datetime]::Now
     $startTime = [datetime]::Now
 
-    Write-Host "=== Inventor Activity Tracker - Headless Mode ===" -ForegroundColor Green
+    Write-Host "=== Multi-App Activity Tracker ===" -ForegroundColor Green
     Write-Host "Configuration:" -ForegroundColor Cyan
     Write-Host "  Data file: $uniqueJsonPath" -ForegroundColor Gray
     Write-Host "  CSV export: $uniqueCsvPath" -ForegroundColor Gray
@@ -181,33 +181,55 @@ try {
         }
         
         try {
-            # Check if Inventor is the active window
-            if (Test-InventorActive) {
-                # Get the currently active Inventor file
-                $activeFile = Get-ActiveInventorFile -ExcludedPaths $config.ExcludedPaths
+            # Check all configured applications for activity
+            $activeApps = Get-ActiveTrackedApps
+            
+            if ($activeApps.Count -gt 0) {
+                # Get user input activity
+                $activity = Get-ActivityInput
+                $hasActivity = ($activity.MouseClicks -gt 0) -or ($activity.KeyPresses -gt 0) -or $activity.IsContinuous
                 
-                if ($activeFile) {
-                    # Get user input activity
-                    $activity = Get-ActivityInput
-                    $hasActivity = ($activity.MouseClicks -gt 0) -or ($activity.KeyPresses -gt 0) -or $activity.IsContinuous
+                if ($hasActivity) {
+                    $today = (Get-Date).ToString("yyyy-MM-dd")
                     
-                    if ($hasActivity) {
-                        $today = (Get-Date).ToString("yyyy-MM-dd")
+                    # Process each active application
+                    foreach ($app in $activeApps) {
+                        # Determine what to track - file path or app name
+                        $trackingKey = if ($app.ActiveFile) { 
+                            $app.ActiveFile 
+                        } else { 
+                            "$($app.Name) (Application)" 
+                        }
                         
-                        # Initialize tracking for new files
-                        if (-not $trackingData.ContainsKey($activeFile)) {
-                            $trackingData[$activeFile] = @{
+                        # Skip if file path should be excluded (only applies to file paths, not app names)
+                        if ($app.ActiveFile) {
+                            $shouldExclude = $false
+                            foreach ($excluded in $config.ExcludedPaths) {
+                                if ($trackingKey -like "*$excluded*") {
+                                    $shouldExclude = $true
+                                    break
+                                }
+                            }
+                            if ($shouldExclude) {
+                                continue
+                            }
+                        }
+                        
+                        # Initialize tracking for new files/apps
+                        if (-not $trackingData.ContainsKey($trackingKey)) {
+                            $trackingData[$trackingKey] = @{
                                 DailyActivity = @{}
                             }
                         }
                         
                         # Initialize tracking for today if not exists
-                        if (-not $trackingData[$activeFile].DailyActivity.ContainsKey($today)) {
-                            $trackingData[$activeFile].DailyActivity[$today] = @{
+                        if (-not $trackingData[$trackingKey].DailyActivity.ContainsKey($today)) {
+                            $trackingData[$trackingKey].DailyActivity[$today] = @{
                                 TotalActiveSeconds = 0
                                 LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                             }
-                            Write-Host "Started tracking new file for $today`: $(Split-Path $activeFile -Leaf)" -ForegroundColor Green
+                            $displayName = if ($app.ActiveFile) { Split-Path $app.ActiveFile -Leaf } else { $app.Name }
+                            Write-Host "Started tracking $($app.Name) for $today`: $displayName" -ForegroundColor Green
                         }
                         
                         # Calculate time to add based on activity weights
@@ -219,14 +241,14 @@ try {
                         }
                         
                         # Update tracking data for today
-                        $trackingData[$activeFile].DailyActivity[$today].TotalActiveSeconds += $timeToAdd
-                        $trackingData[$activeFile].DailyActivity[$today].LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                        $trackingData[$trackingKey].DailyActivity[$today].TotalActiveSeconds += $timeToAdd
+                        $trackingData[$trackingKey].DailyActivity[$today].LastSeenTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                         
-                        $fileName = Split-Path $activeFile -Leaf
+                        $displayName = if ($app.ActiveFile) { Split-Path $app.ActiveFile -Leaf } else { $app.Name }
                         $timestamp = Get-Date -Format "HH:mm:ss"
-                        $todayTotal = $trackingData[$activeFile].DailyActivity[$today].TotalActiveSeconds
-                        Write-Host "[$timestamp] Activity in $fileName`: +$([math]::Round($timeToAdd, 2))s (Today: $([math]::Round($todayTotal, 2))s)" -ForegroundColor Green
-                        Write-Verbose "Activity detected in $fileName`: +$([math]::Round($timeToAdd, 2))s (Mouse: $($activity.MouseClicks), Keys: $($activity.KeyPresses), Continuous: $($activity.IsContinuous))"
+                        $todayTotal = $trackingData[$trackingKey].DailyActivity[$today].TotalActiveSeconds
+                        Write-Host "[$timestamp] Activity in $($app.Name) - $displayName`: +$([math]::Round($timeToAdd, 2))s (Today: $([math]::Round($todayTotal, 2))s)" -ForegroundColor Green
+                        Write-Verbose "Activity detected in $($app.Name) - $displayName`: +$([math]::Round($timeToAdd, 2))s (Mouse: $($activity.MouseClicks), Keys: $($activity.KeyPresses), Continuous: $($activity.IsContinuous))"
                     }
                 }
             }

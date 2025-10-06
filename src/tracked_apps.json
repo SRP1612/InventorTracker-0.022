@@ -1,0 +1,54 @@
+{
+  "applications": [
+    {
+      "name": "Inventor",
+      "processName": "Inventor",
+      "mainTitleSubstring": "Autodesk Inventor",
+      "titlePatternsFile": "inventor_titles.txt",
+      "classPatternsFile": "inventor_classes.txt",
+      "trackFiles": true,
+      "comObject": "Inventor.Application",
+      "fileMethod": "ActiveDocument.DisplayName"
+    },
+    {
+      "name": "Acrobat",
+      "processName": "Acrobat",
+      "mainTitleSubstring": "Adobe Acrobat",
+      "titlePatternsFile": "adobe_titles.txt",
+      "classPatternsFile": "adobe_classes.txt",
+      "trackFiles": true,
+      "comObject": "AcroExch.App",
+      "fileMethod": "GetActiveDoc().GetFileName()"
+    },
+    {
+      "name": "Chrome",
+      "processName": "chrome",
+      "mainTitleSubstring": "Google Chrome",
+      "titlePatternsFile": "",
+      "classPatternsFile": "",
+      "trackFiles": false,
+      "comObject": "",
+      "fileMethod": ""
+    },
+    {
+      "name": "Excel",
+      "processName": "EXCEL",
+      "mainTitleSubstring": "Microsoft Excel",
+      "titlePatternsFile": "",
+      "classPatternsFile": "",
+      "trackFiles": true,
+      "comObject": "Excel.Application",
+      "fileMethod": "ActiveWorkbook.Name"
+    },
+    {
+      "name": "VSCode",
+      "processName": "Code",
+      "mainTitleSubstring": "Visual Studio Code",
+      "titlePatternsFile": "",
+      "classPatternsFile": "",
+      "trackFiles": false,
+      "comObject": "",
+      "fileMethod": ""
+    }
+  ]
+}

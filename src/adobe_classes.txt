@@ -1,0 +1,6 @@
+# Adobe Photoshop window class patterns
+photoshop
+adobe
+acrobat
+acrobat pro
+afx:

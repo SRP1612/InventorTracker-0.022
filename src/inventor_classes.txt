@@ -1,0 +1,5 @@
+# Inventor window class patterns (one per line)
+# Lines starting with # are comments
+afx:400000:
+autodesk
+inventor

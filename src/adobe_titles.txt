@@ -1,0 +1,131 @@
+# Adobe applications - primarily Acrobat Pro
+# Common dialog and tool patterns across Adobe apps
+
+# Adobe Acrobat specific patterns
+comment
+annotation
+markup
+highlight
+sticky note
+text box
+drawing
+stamp
+signature
+sign
+encrypt
+security
+password
+redaction
+redact
+bookmark
+link
+form
+field
+text field
+checkbox
+radio button
+dropdown
+combo box
+button
+submit
+reset
+digital signature
+certificate
+print production
+preflight
+color conversion
+fix up
+optimize
+crop pages
+extract pages
+split document
+combine files
+merge
+compare documents
+review
+shared review
+email review
+tracker
+portfolio
+binder
+javascript
+action wizard
+batch processing
+ocr
+recognize text
+export
+convert
+create pdf
+scan
+organize pages
+rotate
+delete pages
+insert pages
+replace pages
+extract
+split
+combine
+header
+footer
+watermark
+background
+page numbering
+measure
+markup
+drawing tools
+sticky notes
+callout
+text edits
+underline
+strikethrough
+cross out
+replace text
+insert text
+note
+file attachment
+sound
+movie
+3d
+rich media
+form wizard
+distribute form
+collect responses
+tracker
+review tracker
+shared review
+email review
+browser review
+collaboration
+markup summary
+comments list
+model tree
+layers
+content
+tags
+order
+articles
+destinations
+digital editions
+reader
+mobile
+web
+cloud
+document cloud
+sign
+send for signature
+fill & sign
+request signatures
+manage
+track
+adobe id
+creative cloud
+acrobat
+reader
+pro
+dc
+subscription
+updates
+help
+tutorials
+learn
+support
