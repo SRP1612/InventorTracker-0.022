@@ -77,18 +77,50 @@ function Get-ActiveApplicationAndFile {
             }
         }
 
-        # Special handling for Inventor - use COM API to get active document
+        # Special handling for specific applications using COM APIs
         if ($processName -eq "Inventor") {
             try {
                 $inventorApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Inventor.Application")
                 if ($inventorApp -and $inventorApp.ActiveDocument) {
                     $activeDoc = $inventorApp.ActiveDocument
-                    $filename = [System.IO.Path]::GetFileName($activeDoc.FullFileName)
+                    $filename = $activeDoc.FullFileName
                 }
             }
             catch {
                 # Inventor not running or no active document
-                $filename = $null
+            }
+        }
+        elseif ($processName -ieq "EXCEL") {
+            try {
+                $excelApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+                if ($excelApp -and $excelApp.ActiveWorkbook) {
+                    $filename = $excelApp.ActiveWorkbook.FullName
+                }
+            }
+            catch {
+                # Excel not running or no active workbook
+            }
+        }
+        elseif ($processName -ieq "WINWORD") {
+            try {
+                $wordApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Word.Application")
+                if ($wordApp -and $wordApp.ActiveDocument) {
+                    $filename = $wordApp.ActiveDocument.FullName
+                }
+            }
+            catch {
+                # Word not running or no active document
+            }
+        }
+        elseif ($processName -ieq "POWERPNT") {
+            try {
+                $pptApp = [Runtime.InteropServices.Marshal]::GetActiveObject("PowerPoint.Application")
+                if ($pptApp -and $pptApp.ActivePresentation) {
+                    $filename = $pptApp.ActivePresentation.FullName
+                }
+            }
+            catch {
+                # PowerPoint not running or no active presentation
             }
         }
 
