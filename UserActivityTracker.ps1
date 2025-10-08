@@ -240,7 +240,11 @@ Write-Host "Recording activity data per file per day with CSV export." -Foregrou
 Write-Host "Data file: $DataFile" -ForegroundColor Cyan
 Write-Host "CSV file: $CsvFile" -ForegroundColor Cyan
 Write-Host "Auto-save interval: $SaveIntervalSeconds seconds" -ForegroundColor Cyan
+Write-Host "Program will start recording activity in 5 seconds..."
+Start-Sleep -Seconds 5
 Write-Host ""
+Clear-Host
+
 
 try {
     while ($true) {
@@ -273,7 +277,8 @@ try {
                 if ($active) {
                     Write-Host "Active Application: $($active.Application)" -ForegroundColor Yellow
                     if ($active.Filename) {
-                        Write-Host "Active File: $($active.Filename)" -ForegroundColor Cyan
+                        $displayName = Split-Path $active.Filename -Leaf
+                        Write-Host "Active File: $displayName" -ForegroundColor Cyan
                     } else {
                         Write-Host "Active File: None detected" -ForegroundColor Gray
                     }

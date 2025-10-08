@@ -15,6 +15,7 @@ function Import-TrackingData {
                         $dailyData[$_.Name] = @{
                             TotalActiveSeconds = $_.Value.TotalActiveSeconds
                             LastSeenTime = $_.Value.LastSeenTime
+                            Application = if ($_.Value.Application) { $_.Value.Application } else { "Unknown" }
                         }
                     }
                     $trackingData[$_.Name] = @{ DailyActivity = $dailyData }
@@ -71,10 +72,12 @@ function Export-TrackingDataToCsv {
                 $dayData = $_.Value
                 $totalSeconds = if ($dayData.TotalActiveSeconds) { [math]::Round($dayData.TotalActiveSeconds, 2) } else { 0 }
                 $lastSeen = if ($dayData.LastSeenTime) { $dayData.LastSeenTime } else { "Never" }
+                $application = if ($dayData.Application) { $dayData.Application } else { "Unknown" }
                 $totalMinutes = [math]::Round($totalSeconds / 60, 2)
                 $totalHours = [math]::Round($totalSeconds / 3600, 2)
                 [PSCustomObject]@{
                     Date = $date
+                    Application = $application
                     FileName = $fileName
                     FullPath = $fullPath
                     TotalActiveSeconds = $totalSeconds
