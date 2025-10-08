@@ -37,8 +37,12 @@ function Export-TrackingData {
         New-Item -ItemType File -Path $FilePath | Out-Null
     }
     $exportData = @{ Metadata = @{ ComputerName = $env:COMPUTERNAME; UserName = $env:USERNAME; ExportTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss"); Version = "1.0" }; TrackingData = $Data }
-    $jsonData = $exportData | ConvertTo-Json -Depth 10
-    Set-Content -Path $FilePath -Value $jsonData -Encoding UTF8
+    try {
+        $jsonData = $exportData | ConvertTo-Json -Depth 10 -Compress
+    } catch {
+        $jsonData = '{"Metadata":{"Error":"Serialization failed"},"TrackingData":{}}'
+    }
+    Set-Content -Path $FilePath -Value $jsonData -Encoding UTF8 -Force
 }
 
 function Export-TrackingDataToCsv {
@@ -52,8 +56,15 @@ function Export-TrackingDataToCsv {
         New-Item -ItemType File -Path $CsvPath | Out-Null
     }
     $csvOutput = $TrackingData.GetEnumerator() | ForEach-Object {
-        $fileName = if ($_.Name) { Split-Path $_.Name -Leaf } else { "Unknown" }
         $fullPath = $_.Name
+        $fileName = if ($fullPath -and (Test-Path $fullPath -IsValid)) { 
+            Split-Path $fullPath -Leaf 
+        } elseif ($fullPath) { 
+            # Handle non-standard paths or application\filename format
+            if ($fullPath -match '\\([^\\]+)$') { $matches[1] } else { $fullPath }
+        } else { 
+            "Unknown" 
+        }
         if ($_.Value.DailyActivity) {
             $_.Value.DailyActivity.GetEnumerator() | ForEach-Object {
                 $date = $_.Name
@@ -74,5 +85,10 @@ function Export-TrackingDataToCsv {
             }
         }
     } | Sort-Object Date, TotalActiveSeconds -Descending
-    $csvOutput | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8
+    try {
+        $csvOutput | Export-Csv -Path $CsvPath -NoTypeInformation -Encoding UTF8 -Force
+    } catch {
+        # swallow export errors to avoid crashing the tracker
+        Out-Null
+    }
 }

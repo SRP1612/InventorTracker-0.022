@@ -1,7 +1,7 @@
 # UserActivityTracker.ps1
 # Enhanced activity tracker that records detailed activity data and exports to CSV
 
-Add-Type -TypeDefinition @"
+Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
 
@@ -65,7 +65,7 @@ public class ActivityDetector {
         return false;
     }
 }
-"@
+'@
 
 function Get-ActiveApplicationAndFile {
     try {
@@ -105,7 +105,7 @@ function Get-ActiveApplicationAndFile {
                 $inventorApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Inventor.Application")
                 if ($inventorApp -and $inventorApp.ActiveDocument) {
                     $activeDoc = $inventorApp.ActiveDocument
-                    $filename = [System.IO.Path]::GetFileName($activeDoc.FullFileName)
+                    $filename = $activeDoc.FullFileName
                 }
             }
             catch { }
@@ -213,11 +213,7 @@ try {
                 $active = Get-ActiveApplicationAndFile
 
                 if ($active -and $active.Filename) {
-                    $fullPath = if ($active.Filename -match '^[A-Z]:\\') {
-                        $active.Filename
-                    } else {
-                        "$($active.Application)\$($active.Filename)"
-                    }
+                    $fullPath = $active.Filename
 
                     if ($currentDayActivity.MouseClicks -gt 0 -or $currentDayActivity.KeyPresses -gt 0 -or $currentDayActivity.ContinuousSeconds -gt 0) {
                         Update-TrackingData -FilePath $fullPath -Application $active.Application -Activity $currentDayActivity
@@ -279,10 +275,10 @@ try {
                     try {
                         Export-TrackingData -FilePath $DataFile -Data $TrackingData
                         Export-TrackingDataToCsv -CsvPath $CsvFile -TrackingData $TrackingData
-                        Write-Host " ✓ Complete!" -ForegroundColor Green
+                            Write-Host "Complete!" -ForegroundColor Green
                     }
                     catch {
-                        Write-Host " ✗ Failed: $($_.Exception.Message)" -ForegroundColor Red
+                            Write-Host "Failed: $($_.Exception.Message)" -ForegroundColor Red
                     }
                 }
                 $lastSaveTime = $currentTime
@@ -295,6 +291,9 @@ try {
             Start-Sleep -Milliseconds 100
         }
     }
+}
+catch {
+    Write-Warning "Critical error in activity tracker: $_"
 }
 finally {
     if ($TrackingData.Count -gt 0) {
