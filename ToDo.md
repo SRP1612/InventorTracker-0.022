@@ -21,6 +21,7 @@ Use Windows API calls to detect system idle time (no mouse/keyboard activity) an
 4. Only count activity if idle time is below threshold (e.g., 5 minutes)
 
 **Code Example**:
+
 ```powershell
 Add-Type @"
 using System;
@@ -61,6 +62,7 @@ Monitor for changes in active windows and detect prolonged periods of inactivity
 4. Exclude idle periods from activity calculations
 
 **Code Example**:
+
 ```powershell
 $lastWindowHandle = $null
 $lastWindowChange = Get-Date
@@ -103,6 +105,7 @@ Use PowerShell modules like PSWriteHTML or ImportExcel to generate HTML charts o
 5. Save HTML file for viewing in browser
 
 **Code Example**:
+
 ```powershell
 function Export-ActivityCharts {
     param([string]$DataFile, [string]$OutputPath)
@@ -143,6 +146,7 @@ Create a simple web interface using HTML/CSS/JavaScript that reads the JSON/CSV 
 5. Serve via local web server or static files
 
 **Code Example** (HTML template):
+
 ```html
 <!DOCTYPE html>
 <html>
@@ -566,4 +570,513 @@ Use tools like WiX Toolset or Advanced Installer to create a proper Windows MSI 
 
 **Pros**: Professional installation, system integration
 **Cons**: Steep learning curve, requires additional tools
+
+## 8. Add privacy controls and data anonymization options
+
+**Summary**: Implement features to protect sensitive information in tracking data, especially important for enterprise deployments.
+
+**Prerequisites**: Cryptography knowledge, privacy regulation compliance
+**Estimated Effort**: Medium (3-4 days)
+**Dependencies**: .NET cryptography libraries
+
+**Option 1 - File Path Hashing**:
+Replace sensitive file paths and names with cryptographic hashes while maintaining tracking functionality. This allows analysis without exposing actual project names or locations.
+
+**Implementation Steps**:
+
+1. Create hash function for file paths using SHA-256
+2. Maintain hash-to-path mapping in encrypted lookup table
+3. Add configuration option to enable/disable anonymization
+4. Modify all display and export functions to use hashed names
+5. Implement secure key management for hash lookup
+
+**Code Example**:
+
+```powershell
+function Get-AnonymizedPath {
+    param([string]$FilePath, [string]$Salt)
+    
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    $saltedPath = $FilePath + $Salt
+    $hashBytes = $hasher.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($saltedPath))
+    $hashString = [System.BitConverter]::ToString($hashBytes).Replace("-", "")
+    
+    return "Project_" + $hashString.Substring(0, 8)
+}
+
+# Store mapping securely
+$pathMappings = @{}
+$anonymizedPath = Get-AnonymizedPath -FilePath $realPath -Salt $userSalt
+$pathMappings[$anonymizedPath] = $realPath
+```
+
+**Pros**: Strong privacy protection, regulatory compliance
+**Cons**: Harder to interpret reports, requires key management
+
+**Option 2 - Configurable Data Filtering**:
+Allow users to configure which data elements to exclude or anonymize based on patterns, file types, or directory structures.
+
+**Implementation Steps**:
+
+1. Create privacy configuration file with filtering rules
+2. Add pattern matching for sensitive directories/files
+3. Implement data masking for specific file types
+4. Add user consent and notification features
+5. Create audit trail for privacy compliance
+
+**Code Example**:
+
+```powershell
+$privacyConfig = @{
+    ExcludePatterns = @("*\Personal\*", "*\Confidential\*")
+    MaskExtensions = @(".docx", ".xlsx", ".pdf")
+    AnonymizeProjectCodes = $true
+    RequireConsent = $true
+}
+
+function Test-ShouldTrackFile {
+    param([string]$FilePath)
+    
+    foreach ($pattern in $privacyConfig.ExcludePatterns) {
+        if ($FilePath -like $pattern) {
+            return $false
+        }
+    }
+    return $true
+}
+```
+
+**Pros**: Flexible, user-controlled privacy
+**Cons**: Complex configuration, potential for misconfiguration
+
+## 9. Implement automatic project categorization based on file paths
+
+**Summary**: Automatically categorize tracked activity into projects or work categories based on file system organization and naming conventions.
+
+**Prerequisites**: Regex knowledge, organizational file structure understanding
+**Estimated Effort**: Medium (4-5 days)
+**Dependencies**: None (built-in PowerShell features)
+
+**Option 1 - Rule-Based Categorization**:
+Create configurable rules that match file paths to project categories using regex patterns and directory structures.
+
+**Implementation Steps**:
+
+1. Design categorization rule configuration format
+2. Create rule engine for pattern matching
+3. Add category assignment to tracking data
+4. Implement rule priority and fallback logic
+5. Create category-based reporting views
+
+**Code Example**:
+
+```powershell
+$categoryRules = @(
+    @{ Pattern = ".*\\Projects\\([^\\]+)\\.*"; Category = "Project: {1}"; Priority = 1 },
+    @{ Pattern = ".*\\CAD\\.*"; Category = "CAD Design"; Priority = 2 },
+    @{ Pattern = ".*\\Reports\\.*"; Category = "Documentation"; Priority = 2 },
+    @{ Pattern = ".*\\Admin\\.*"; Category = "Administrative"; Priority = 3 }
+)
+
+function Get-FileCategory {
+    param([string]$FilePath)
+    
+    foreach ($rule in ($categoryRules | Sort-Object Priority)) {
+        if ($FilePath -match $rule.Pattern) {
+            $category = $rule.Category
+            # Replace placeholders with regex matches
+            for ($i = 1; $i -le $matches.Count - 1; $i++) {
+                $category = $category.Replace("{$i}", $matches[$i])
+            }
+            return $category
+        }
+    }
+    return "Uncategorized"
+}
+```
+
+**Pros**: Automated, customizable, scalable
+**Cons**: Requires initial rule configuration, may need tuning
+
+**Option 2 - Machine Learning Classification**:
+Use historical data and file characteristics to automatically learn and predict project categories.
+
+**Implementation Steps**:
+
+1. Collect training data from existing file structures
+2. Extract features (path components, file types, timestamps)
+3. Train simple classification model (naive Bayes or decision tree)
+4. Implement real-time classification
+5. Add feedback mechanism for improving accuracy
+
+**Code Example**:
+
+```powershell
+function Get-FileFeatures {
+    param([string]$FilePath)
+    
+    $pathParts = $FilePath.Split('\')
+    $extension = [System.IO.Path]::GetExtension($FilePath)
+    $directory = [System.IO.Path]::GetDirectoryName($FilePath)
+    
+    return @{
+        Extension = $extension
+        DirectoryDepth = $pathParts.Length
+        ContainsNumbers = $FilePath -match '\d+'
+        ContainsProjectCode = $FilePath -match '[A-Z]{2,3}-\d{3,4}'
+        DirectoryName = $pathParts[-2]
+    }
+}
+
+# Simple classification logic
+function Classify-Project {
+    param($Features, $TrainingData)
+    # Implement basic ML classification
+    # Compare features against known patterns
+}
+```
+
+**Pros**: Self-improving, learns from usage patterns
+**Cons**: Requires training data, more complex implementation
+
+## 10. Add integration with calendar systems for context-aware tracking
+
+**Summary**: Integrate with Outlook/Google Calendar to provide context about meetings, deadlines, and scheduled work for more meaningful activity analysis.
+
+**Prerequisites**: Calendar API knowledge, OAuth implementation
+**Estimated Effort**: High (1-2 weeks)
+**Dependencies**: Microsoft Graph API or Google Calendar API
+
+**Option 1 - Outlook Integration via Microsoft Graph**:
+Connect to Microsoft 365 calendar to correlate activity tracking with scheduled meetings and events.
+
+**Implementation Steps**:
+
+1. Set up Microsoft Graph API authentication
+2. Retrieve calendar events for current day
+3. Correlate activity periods with calendar entries
+4. Add meeting context to activity reports
+5. Identify productive vs. meeting time
+
+**Code Example**:
+
+```powershell
+# Install-Module Microsoft.Graph
+function Get-CalendarContext {
+    param([DateTime]$StartTime, [DateTime]$EndTime)
+    
+    Connect-MgGraph -Scopes "Calendars.Read"
+    
+    $events = Get-MgUserEvent -Filter "start/dateTime ge '$($StartTime.ToString('yyyy-MM-ddTHH:mm:ss'))' and end/dateTime le '$($EndTime.ToString('yyyy-MM-ddTHH:mm:ss'))'"
+    
+    return $events | ForEach-Object {
+        @{
+            Subject = $_.Subject
+            Start = $_.Start.DateTime
+            End = $_.End.DateTime
+            Type = if ($_.IsAllDay) { "All Day" } else { "Meeting" }
+        }
+    }
+}
+
+function Add-CalendarContext {
+    param($ActivityData, $CalendarEvents)
+    
+    foreach ($activity in $ActivityData) {
+        $overlappingEvents = $CalendarEvents | Where-Object {
+            $activity.StartTime -ge $_.Start -and $activity.EndTime -le $_.End
+        }
+        $activity.CalendarContext = $overlappingEvents
+    }
+}
+```
+
+**Pros**: Rich context, meeting correlation, productivity insights
+**Cons**: Requires permissions, OAuth complexity, API rate limits
+
+**Option 2 - iCal File Integration**:
+Read standard calendar files (ICS format) that can be exported from any calendar system for simpler integration.
+
+**Implementation Steps**:
+
+1. Implement ICS file parser
+2. Set up automatic calendar file updates
+3. Create event matching algorithm
+4. Add calendar overlay to activity timeline
+5. Generate context-aware reports
+
+**Code Example**:
+
+```powershell
+function Parse-ICalFile {
+    param([string]$ICalPath)
+    
+    $content = Get-Content $ICalPath -Raw
+    $events = @()
+    
+    # Simple ICS parsing
+    $eventBlocks = $content -split 'BEGIN:VEVENT'
+    foreach ($block in $eventBlocks[1..$eventBlocks.Length]) {
+        if ($block -match 'DTSTART:(\d{8}T\d{6}Z)' -and $block -match 'SUMMARY:(.+)') {
+            $events += @{
+                Start = [DateTime]::ParseExact($matches[1], 'yyyyMMddTHHmmssZ', $null)
+                Summary = $matches[2].Trim()
+            }
+        }
+    }
+    return $events
+}
+```
+
+**Pros**: Universal format, no API dependencies, works offline
+**Cons**: Manual file updates, limited real-time integration
+
+## 11. Create mobile companion app for status viewing
+
+**Summary**: Develop a mobile application or responsive web interface for viewing activity status and reports on mobile devices.
+
+**Prerequisites**: Mobile development or responsive web design
+**Estimated Effort**: High (2-3 weeks)
+**Dependencies**: Mobile development framework or web technologies
+
+**Option 1 - Progressive Web App (PWA)**:
+Create a responsive web application that works on mobile devices and can be installed as a native app.
+
+**Implementation Steps**:
+
+1. Design responsive HTML/CSS interface
+2. Implement JavaScript for data visualization
+3. Add PWA manifest and service workers
+4. Create mobile-optimized charts and reports
+5. Add push notifications for status updates
+
+**Code Example**:
+
+```html
+<!-- PWA Manifest -->
+{
+  "name": "InventorTracker Mobile",
+  "short_name": "InvTracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
+
+<!-- Mobile-optimized dashboard -->
+<div class="mobile-dashboard">
+  <div class="status-card">
+    <h3>Today's Activity</h3>
+    <div class="metric">
+      <span class="value" id="total-hours">0</span>
+      <span class="label">Hours</span>
+    </div>
+  </div>
+</div>
+```
+
+**Pros**: Cross-platform, web-based, easier deployment
+**Cons**: Limited native features, requires web server
+
+**Option 2 - Native Mobile App**:
+Develop native iOS/Android applications with full platform integration.
+
+**Implementation Steps**:
+
+1. Choose development framework (Xamarin, Flutter, React Native)
+2. Design native UI for activity viewing
+3. Implement data synchronization with desktop app
+4. Add native notifications and widgets
+5. Publish to app stores
+
+**Code Example** (Flutter):
+
+```dart
+class ActivityStatusWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        children: [
+          Text('Current Activity', style: Theme.of(context).textTheme.headline6),
+          StreamBuilder<ActivityStatus>(
+            stream: activityStream,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Text('Working on: ${snapshot.data.filename}');
+              }
+              return CircularProgressIndicator();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+**Pros**: Full native features, better performance, offline capability
+**Cons**: Multiple platform development, app store approval, higher complexity
+
+## 12. Add productivity scoring and goal-setting features
+
+**Summary**: Implement productivity metrics, scoring algorithms, and goal-setting capabilities to gamify the tracking experience and encourage productivity improvements.
+
+**Prerequisites**: Statistics knowledge, goal-setting methodology
+**Estimated Effort**: Medium (5-6 days)
+**Dependencies**: None (mathematical calculations)
+
+**Option 1 - Algorithmic Productivity Scoring**:
+Create scoring algorithms based on activity patterns, focus time, and application usage to generate productivity scores.
+
+**Implementation Steps**:
+
+1. Define productivity metrics (focus time, task switching, break patterns)
+2. Create weighted scoring algorithm
+3. Implement trend analysis and historical comparison
+4. Add productivity insights and recommendations
+5. Create scoring dashboard and reports
+
+**Code Example**:
+
+```powershell
+function Calculate-ProductivityScore {
+    param($DayActivity, $UserBaseline)
+    
+    $focusScore = Get-FocusScore $DayActivity.ContinuousMinutes
+    $efficiencyScore = Get-EfficiencyScore $DayActivity.TaskSwitches
+    $consistencyScore = Get-ConsistencyScore $DayActivity.WorkPattern
+    
+    $weightedScore = ($focusScore * 0.4) + ($efficiencyScore * 0.35) + ($consistencyScore * 0.25)
+    
+    return @{
+        OverallScore = [math]::Round($weightedScore, 1)
+        FocusScore = $focusScore
+        EfficiencyScore = $efficiencyScore
+        ConsistencyScore = $consistencyScore
+        Insights = Get-ProductivityInsights $DayActivity $UserBaseline
+    }
+}
+
+function Get-FocusScore {
+    param([int]$ContinuousMinutes)
+    
+    # Score based on sustained focus periods
+    $focusPeriods = $ContinuousMinutes / 25  # 25-minute focus blocks
+    return [math]::Min(100, $focusPeriods * 10)
+}
+```
+
+**Pros**: Objective measurement, gamification, improvement tracking
+**Cons**: Subjective nature of productivity, may not suit all work styles
+
+**Option 2 - Goal-Based Tracking System**:
+Allow users to set specific goals (time targets, application usage limits, focus periods) and track progress against them.
+
+**Implementation Steps**:
+
+1. Create goal configuration interface
+2. Implement goal types (daily hours, application limits, project time)
+3. Add progress tracking and notifications
+4. Create achievement system with badges/rewards
+5. Generate goal-focused reports and analytics
+
+**Code Example**:
+
+```powershell
+$userGoals = @{
+    DailyHours = @{ Target = 8; Type = "Minimum" }
+    InventorTime = @{ Target = 4; Type = "Minimum" }
+    MaxEmailTime = @{ Target = 1; Type = "Maximum" }
+    FocusBlocks = @{ Target = 6; Type = "Count" }
+}
+
+function Check-GoalProgress {
+    param($TodayActivity, $Goals)
+    
+    $progress = @{}
+    
+    foreach ($goal in $Goals.GetEnumerator()) {
+        $actualValue = Get-GoalActualValue $TodayActivity $goal.Key
+        $targetValue = $goal.Value.Target
+        
+        $progress[$goal.Key] = @{
+            Actual = $actualValue
+            Target = $targetValue
+            Progress = [math]::Round(($actualValue / $targetValue) * 100, 1)
+            Status = if ($actualValue -ge $targetValue) { "Achieved" } else { "In Progress" }
+        }
+    }
+    
+    return $progress
+}
+```
+
+**Pros**: Personalized, motivational, clear targets
+**Cons**: Requires user engagement, goal setting complexity
+
+---
+
+## Footnotes and Additional Considerations
+
+### Performance and Security Notes
+
+**Note 1**: *Idle Time Detection Security* - When implementing idle time detection, consider that some enterprise security software may interfere with GetLastInputInfo API calls. Alternative approaches include monitoring clipboard changes, network activity, or file system events as secondary indicators of user activity.
+
+**Note 2**: *Application COM API Versions* - COM API integration requires version-specific handling. AutoCAD's COM API varies significantly between versions (2018+ uses different object models than older versions). Consider implementing version detection logic to handle multiple API versions gracefully.
+
+**Note 3**: *Chart Performance* - For visualization charts with large datasets (>10,000 activity records), consider implementing data pagination or aggregation. Chart.js performance degrades with datasets larger than 5,000 points. PSWriteHTML may require chunking for very large reports.
+
+### Technical Implementation Details
+
+**Note 4**: *Database Schema Evolution* - When implementing the multi-user database backend, design the schema with versioning in mind. Include a schema_version table and migration scripts to handle future data structure changes without losing existing tracking data.
+
+**Note 5**: *Web Dashboard CORS Issues* - Static HTML dashboards that fetch JSON files locally will encounter CORS restrictions in modern browsers. Consider serving files via a simple HTTP server (Python's `http.server` module or PowerShell's `Start-SimpleHTTPServer`) or embedding data directly in HTML.
+
+**Note 6**: *Backup Encryption* - For cloud storage integration, implement client-side encryption before uploading activity data. Personal activity tracking data contains sensitive information about work patterns and file access that should be encrypted at rest.
+
+### Alternative Implementation Approaches
+
+**Note 7**: *Event-Driven Architecture* - Instead of polling for active applications every second, consider implementing Windows Event Tracing (ETW) or WMI event subscriptions to detect application focus changes. This reduces CPU overhead and improves accuracy.
+
+**Note 8**: *Cross-Platform Considerations* - While the current implementation is Windows-specific, the core tracking logic could be abstracted to support macOS (using AppleScript/Objective-C) and Linux (using X11/Wayland APIs) for organizations with mixed environments.
+
+**Note 9**: *Machine Learning Enhancement* - Advanced idle detection could incorporate machine learning to learn individual user patterns. Some users naturally have longer pauses between interactions, and ML could adapt thresholds based on historical behavior patterns.
+
+### Integration Opportunities
+
+**Note 10**: *Time Tracking Integration* - Consider integration with existing time tracking systems (Toggl, Harvest, Clockify) via their APIs. This could automatically start/stop timers based on detected application activity, bridging the gap between passive monitoring and active time tracking.
+
+**Note 11**: *Project Management Integration* - File path analysis could automatically categorize activity by project based on folder structures or naming conventions. Integration with project management tools (Jira, Azure DevOps, Asana) could provide project context to tracked time.
+
+**Note 12**: *Reporting Automation* - Implement scheduled reporting that automatically generates and emails weekly/monthly summaries to managers or team leads. This could include productivity insights, most-used applications, and time distribution analysis.
+
+### Enterprise and Compliance Considerations
+
+**Note 13**: *GDPR and Privacy Compliance* - For European deployments, ensure GDPR compliance by implementing data portability, right to deletion, and explicit consent mechanisms. Consider data minimization principles and purpose limitation for tracking data collection.
+
+**Note 14**: *Audit Trail Implementation* - Enterprise environments may require comprehensive audit trails showing when tracking was active, what data was collected, and any modifications made to historical data. Include immutable logging for compliance requirements.
+
+**Note 15**: *Performance Monitoring* - Add system resource monitoring to ensure the tracker doesn't impact system performance. Include CPU/memory usage reporting and automatic throttling when system resources are constrained.
+
+### Advanced Analytics and AI Integration
+
+**Note 16**: *Predictive Analytics* - Implement machine learning models to predict project completion times based on historical activity patterns. This could help with better project planning and resource allocation.
+
+**Note 17**: *Anomaly Detection* - Add algorithms to detect unusual activity patterns that might indicate security issues, system problems, or changes in work habits that require attention.
+
+**Note 18**: *Natural Language Processing* - For organizations with standardized file naming conventions, implement NLP to automatically extract project information, client names, and task types from file names and paths.
+
+### Collaboration and Team Features
+
+**Note 19**: *Team Dashboard* - Create collaborative features showing team activity patterns, workload distribution, and identifying potential bottlenecks in collaborative projects. Include privacy controls for individual vs. aggregate reporting.
+
+**Note 20**: *Integration with Collaboration Tools* - Consider integration with Slack, Microsoft Teams, or other collaboration platforms to provide activity status updates and enable team coordination based on current work focus.
 
