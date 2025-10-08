@@ -110,6 +110,52 @@ function Get-ActiveApplicationAndFile {
             }
             catch { }
         }
+        elseif ($processName -ieq "EXCEL") {
+            try {
+                $excelApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+                if ($excelApp -and $excelApp.ActiveWorkbook) {
+                    $filename = $excelApp.ActiveWorkbook.FullName
+                }
+            }
+            catch { }
+        }
+        elseif ($processName -ieq "WINWORD") {
+            try {
+                $wordApp = [Runtime.InteropServices.Marshal]::GetActiveObject("Word.Application")
+                if ($wordApp -and $wordApp.ActiveDocument) {
+                    $filename = $wordApp.ActiveDocument.FullName
+                }
+            }
+            catch { }
+        }
+        elseif ($processName -ieq "POWERPNT") {
+            try {
+                $pptApp = [Runtime.InteropServices.Marshal]::GetActiveObject("PowerPoint.Application")
+                if ($pptApp -and $pptApp.ActivePresentation) {
+                    $filename = $pptApp.ActivePresentation.FullName
+                }
+            }
+            catch { }
+        }
+        # For other applications, try to extract more path info from window title
+        elseif ($windowTitle -and ($filename -notmatch '^[A-Z]:\\')) {
+            # Look for patterns that might contain path info in the title
+            # Some applications show full paths in their titles
+            if ($windowTitle -match '([A-Z]:\\[^"<>|*?]+\.\w+)') {
+                $filename = $matches[1]
+            }
+            # Some show "path - application" format
+            elseif ($windowTitle -match '^([A-Z]:\\[^"<>|*?]+\.\w+)\s*-') {
+                $filename = $matches[1]
+            }
+            # Some show "filename (path)" format
+            elseif ($windowTitle -match '\(([A-Z]:\\[^"<>|*?)]+)\)' -and $filename) {
+                $pathPart = $matches[1]
+                if (Test-Path $pathPart -IsValid) {
+                    $filename = Join-Path $pathPart $filename
+                }
+            }
+        }
 
         return @{
             Application = $processName
