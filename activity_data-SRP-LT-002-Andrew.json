@@ -3,7 +3,7 @@
                      "UserName":  "Andrew",
                      "ComputerName":  "SRP-LT-002",
                      "Version":  "1.0",
-                     "ExportTime":  "2025-10-08 11:45:40"
+                     "ExportTime":  "2025-10-08 11:58:06"
                  },
     "TrackingData":  {
                          "G:\\Shared drives\\Sales Orders\\Training\\SNDBX 25\\Drafting\\AJF\\BeamTemplates\\ILBeams.ipt":  {
@@ -25,16 +25,16 @@
                          "G:\\Shared drives\\Sales Orders\\Training\\SNDBX 25\\Drafting\\AJF\\AJF_Sandbox\\ModelTesting.ipt":  {
                                                                                                                                    "DailyActivity":  {
                                                                                                                                                          "2025-10-08":  {
-                                                                                                                                                                            "TotalActiveSeconds":  23.0,
-                                                                                                                                                                            "LastSeenTime":  "2025-10-08 11:45:36"
+                                                                                                                                                                            "TotalActiveSeconds":  77.0,
+                                                                                                                                                                            "LastSeenTime":  "2025-10-08 11:57:58"
                                                                                                                                                                         }
                                                                                                                                                      }
                                                                                                                                },
                          "G:\\Shared drives\\Sales Orders\\Training\\SNDBX 25\\Drafting\\AJF\\BeamTemplates\\BeamTests.iam":  {
                                                                                                                                   "DailyActivity":  {
                                                                                                                                                         "2025-10-08":  {
-                                                                                                                                                                           "TotalActiveSeconds":  23.0,
-                                                                                                                                                                           "LastSeenTime":  "2025-10-08 11:45:23"
+                                                                                                                                                                           "TotalActiveSeconds":  29.0,
+                                                                                                                                                                           "LastSeenTime":  "2025-10-08 11:58:03"
                                                                                                                                                                        }
                                                                                                                                                     }
                                                                                                                               }
