@@ -1,11 +1,17 @@
 # src/ActivityDetector.ps1
 # This module contains the core activity detection logic extracted from the original script
 
+# Load configuration
+$configPath = Join-Path $PSScriptRoot "..\config.json"
+$config = Get-Content $configPath | ConvertFrom-Json
+
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
 
 public class UltraSensitiveDetector {
+    public static string[] InventorDialogPatterns;
+    public static string[] InventorClassPatterns;
     [DllImport("user32.dll")]
     public static extern short GetAsyncKeyState(int vKey);
     
@@ -17,9 +23,6 @@ public class UltraSensitiveDetector {
     
     [DllImport("user32.dll")]
     public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
-    
-    [DllImport("kernel32.dll")]
-    public static extern uint GetTickCount();
     
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
@@ -83,52 +86,16 @@ public class UltraSensitiveDetector {
     // Identify common Inventor tool dialogs and sub-windows
     private static bool IsInventorDialog(string title, string className) {
         // STRICT: Only check for SPECIFIC Inventor dialog titles (case-insensitive)
-        string[] inventorDialogPatterns = {
-            "extrude", "revolve", "sweep", "loft", "hole", "fillet", "chamfer",
-            "shell", "thread", "pattern", "mirror", "sketch", "dimension",
-            "constraint", "assembly", "part", "drawing", "browser", "model",
-            "feature", "work plane", "work axis", "work point", "split", "trim",
-            "extend", "offset", "project", "derive", "pack and go",
-            "appearance", "material", "inventor", "autodesk",
-            "properties", "parameters", "equations", "content center", "frame",
-            "weldment", "sheet metal", "fold", "unfold", "bend", "flange",
-            "face", "contour", "cut", "join", "boundary patch", "sculpt",
-            "thicken", "stitch", "knit", "emboss", "decal", "split face",
-            "replace face", "delete face", "move face", "rotate face",
-            "suppress", "unsuppress", "adaptive",
-            "flexible", "rigid", "grounded", "degrees of freedom", "contact",
-            "place", "constrain", "mate", "flush", "angle", "tangent",
-            "coincident", "concentric", "parallel", "perpendicular", "collinear",
-            "coplanar", "symmetric", "equal", "fix", "ground", "free",
-            "model tree", "feature tree", "timeline", "history",
-            "measure", "analyze", "mass", "volume", "area",
-            "center of gravity", "moment of inertia", "interference", "clash",
-            "clearance", "minimum distance", "section", "slice", "breakout",
-            "auxiliary", "detail", "broken", "crop", "align", "arrange",
-            "annotation", "leader", "balloon", "parts list", "revision",
-            "title block", "border", "format", "template", "standard", "style",
-            "layer", "line type", "line weight", "text", "symbol",
-            "hatch", "fill", "gradient", "raster", "markup", "redline",
-            "compare", "vault", "collaboration", "shrinkwrap",
-            "simplify", "substitute", "replace", "suppress", "exclude",
-            "include", "design assistant", "task scheduler", "migration",
-            "convert", "translate", "repair", "validate", "check", "analyze"
-        };
-        
         string lowerTitle = title.ToLower();
-        foreach (string pattern in inventorDialogPatterns) {
+        foreach (string pattern in InventorDialogPatterns) {
             if (lowerTitle.Contains(pattern)) {
                 return true;
             }
         }
         
         // STRICT: Only very specific Inventor window class patterns
-        string[] inventorClassPatterns = {
-            "afx:400000:", "autodesk", "inventor"
-        };
-        
         string lowerClassName = className.ToLower();
-        foreach (string pattern in inventorClassPatterns) {
+        foreach (string pattern in InventorClassPatterns) {
             if (lowerClassName.Contains(pattern)) {
                 // Additional check: make sure parent or owner window is Inventor
                 return HasInventorParent();
@@ -243,6 +210,10 @@ public class UltraSensitiveDetector {
     }
 }
 "@
+
+# Set the patterns from config
+[UltraSensitiveDetector]::InventorDialogPatterns = $config.InventorDialogPatterns
+[UltraSensitiveDetector]::InventorClassPatterns = $config.InventorClassPatterns
 
 # PowerShell wrapper functions to make the C# code easy to use
 function Test-InventorActive {

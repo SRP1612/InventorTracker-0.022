@@ -50,13 +50,7 @@ if ($missingProperties.Count -gt 0) {
 # Set up Ctrl+C handler for graceful shutdown
 $global:shutdownRequested = $false
 
-# Register the event handler for Ctrl+C
-[Console]::TreatControlCAsInput = $false
-$null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action {
-    $global:shutdownRequested = $true
-}
-
-# Also handle Ctrl+C manually
+# Handle Ctrl+C manually
 try {
     [Console]::CancelKeyPress += {
         param($s, $e)
@@ -127,10 +121,6 @@ try {
     Write-Host "  Files tracked: $($summary.FileCount)" -ForegroundColor Gray
     Write-Host "  Days of data: $($summary.TotalDays)" -ForegroundColor Gray
     Write-Host "  Total time tracked: $($summary.TotalActiveHours) hours" -ForegroundColor Gray
-    #if ($summary.MostActiveFile -ne "None") {
-    #    $mostActiveFileName = Split-Path $summary.MostActiveFile -Leaf
-    #    Write-Host "  Most active file: $mostActiveFileName" -ForegroundColor Gray
-    #}
     Write-Host ""
     Write-Host "Tracker is running... Press Ctrl+C to stop and export CSV" -ForegroundColor Green
     Write-Host ""
@@ -231,14 +221,6 @@ try {
                 }
             }
             
-            # Periodic status update (every 30 seconds)
-            #if (([datetime]::Now - $lastStatusTime).TotalSeconds -ge 30) {
-            #    $runtime = [datetime]::Now - $startTime
-            #    $summary = Get-TrackingDataSummary -TrackingData $trackingData
-            #    Write-Host "[$($runtime.ToString('hh\:mm\:ss'))] Status: $($summary.FileCount) files tracked, $($summary.TotalActiveHours) hours total" -ForegroundColor Cyan
-            #    $lastStatusTime = [datetime]::Now
-            #}
-            
             # Check if it's time to save data
             if (([datetime]::Now - $lastSaveTime).TotalSeconds -ge $config.SaveIntervalSeconds) {
                 Write-Verbose "Auto-saving tracking data..."
@@ -319,10 +301,6 @@ finally {
             Write-Host "Files tracked: $($summary.FileCount)" -ForegroundColor Cyan
             Write-Host "Days of data: $($summary.TotalDays)" -ForegroundColor Cyan
             Write-Host "Total active time: $($summary.TotalActiveHours) hours" -ForegroundColor Cyan
-            #if ($summary.MostActiveFile -ne "None") {
-            #    $mostActiveFileName = Split-Path $summary.MostActiveFile -Leaf
-            #    Write-Host "Most active file: $mostActiveFileName" -ForegroundColor Cyan
-            #}
             Write-Host ""
             Write-Host "Data saved to: $uniqueJsonPath" -ForegroundColor Green
             Write-Host "CSV exported to: $uniqueCsvPath" -ForegroundColor Green

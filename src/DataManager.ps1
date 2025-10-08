@@ -24,42 +24,20 @@ function Import-TrackingData {
             # Convert PSCustomObject to hashtable for easier manipulation
             $trackingData = @{}
             if ($jsonContent) {
-                # Check if this is the new format with metadata wrapper
-                if ($jsonContent.PSObject.Properties.Name -contains "TrackingData" -and $jsonContent.PSObject.Properties.Name -contains "Metadata") {
-                    # New format: extract tracking data from wrapper
-                    $sourceData = $jsonContent.TrackingData
-                    Write-Host "Loaded data from: $($jsonContent.Metadata.ComputerName)\$($jsonContent.Metadata.UserName) exported at $($jsonContent.Metadata.ExportTime)" -ForegroundColor Cyan
-                } else {
-                    # Old format: use the entire object as tracking data
-                    $sourceData = $jsonContent
-                    Write-Host "Loaded legacy format tracking data" -ForegroundColor Yellow
-                }
+                # Extract tracking data from wrapper
+                $sourceData = $jsonContent.TrackingData
                 
-                # Convert to hashtable - handle both old and new formats
+                # Convert to hashtable
                 $sourceData.PSObject.Properties | ForEach-Object {
-                    if ($_.Value.PSObject.Properties.Name -contains "DailyActivity") {
-                        # New format: per-day tracking
-                        $dailyData = @{}
-                        $_.Value.DailyActivity.PSObject.Properties | ForEach-Object {
-                            $dailyData[$_.Name] = @{
-                                TotalActiveSeconds = $_.Value.TotalActiveSeconds
-                                LastSeenTime = $_.Value.LastSeenTime
-                            }
+                    $dailyData = @{}
+                    $_.Value.DailyActivity.PSObject.Properties | ForEach-Object {
+                        $dailyData[$_.Name] = @{
+                            TotalActiveSeconds = $_.Value.TotalActiveSeconds
+                            LastSeenTime = $_.Value.LastSeenTime
                         }
-                        $trackingData[$_.Name] = @{
-                            DailyActivity = $dailyData
-                        }
-                    } else {
-                        # Old format: convert to new format with today's date
-                        $today = (Get-Date).ToString("yyyy-MM-dd")
-                        $trackingData[$_.Name] = @{
-                            DailyActivity = @{
-                                $today = @{
-                                    TotalActiveSeconds = $_.Value.TotalActiveSeconds
-                                    LastSeenTime = $_.Value.LastSeenTime
-                                }
-                            }
-                        }
+                    }
+                    $trackingData[$_.Name] = @{
+                        DailyActivity = $dailyData
                     }
                 }
             }
@@ -123,7 +101,7 @@ function Export-TrackingData {
         Move-Item -Path $tempPath -Destination $FilePath -Force
         
         # Always show a visible confirmation in the console when a save completes
-        Write-Host "Successfully saved tracking data to $FilePath" -ForegroundColor Cyan
+        Write-Verbose "Successfully saved tracking data to $FilePath"
     }
     catch {
         Write-Warning "Failed to save tracking data to $FilePath`: $_"
@@ -192,9 +170,9 @@ function Export-TrackingDataToCsv {
         $fileCount = $csvOutput.Count
         $totalHours = ($csvOutput | Measure-Object TotalActiveHours -Sum).Sum
         
-        Write-Host "Successfully exported CSV with $fileCount files" -ForegroundColor Green
-        Write-Host "Total tracked time: $([math]::Round($totalHours, 2)) hours" -ForegroundColor Cyan
-        Write-Host "CSV saved to: $CsvPath" -ForegroundColor Cyan
+        Write-Verbose "Successfully exported CSV with $fileCount files"
+        Write-Verbose "Total tracked time: $([math]::Round($totalHours, 2)) hours"
+        Write-Verbose "CSV saved to: $CsvPath"
     }
     catch {
         Write-Warning "Failed to export CSV to $CsvPath`: $_"

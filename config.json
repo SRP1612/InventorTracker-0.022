@@ -15,5 +15,37 @@
         "MouseClick": 3.0,
         "KeyPress": 3.0,
         "Continuous": 5.0
-    }
+    },
+    "InventorDialogPatterns": [
+        "extrude", "revolve", "sweep", "loft", "hole", "fillet", "chamfer",
+        "shell", "thread", "pattern", "mirror", "sketch", "dimension",
+        "constraint", "assembly", "part", "drawing", "browser", "model",
+        "feature", "work plane", "work axis", "work point", "split", "trim",
+        "extend", "offset", "project", "derive", "pack and go",
+        "appearance", "material", "inventor", "autodesk",
+        "properties", "parameters", "equations", "content center", "frame",
+        "weldment", "sheet metal", "fold", "unfold", "bend", "flange",
+        "face", "contour", "cut", "join", "boundary patch", "sculpt",
+        "thicken", "stitch", "knit", "emboss", "decal", "split face",
+        "replace face", "delete face", "move face", "rotate face",
+        "suppress", "unsuppress", "adaptive",
+        "flexible", "rigid", "grounded", "degrees of freedom", "contact",
+        "place", "constrain", "mate", "flush", "angle", "tangent",
+        "coincident", "concentric", "parallel", "perpendicular", "collinear",
+        "coplanar", "symmetric", "equal", "fix", "ground", "free",
+        "model tree", "feature tree", "timeline", "history",
+        "measure", "analyze", "mass", "volume", "area",
+        "center of gravity", "moment of inertia", "interference", "clash",
+        "clearance", "minimum distance", "section", "slice", "breakout",
+        "auxiliary", "detail", "broken", "crop", "align", "arrange",
+        "annotation", "leader", "balloon", "parts list", "revision",
+        "title block", "border", "format", "template", "standard", "style",
+        "layer", "line type", "line weight", "text", "symbol",
+        "hatch", "fill", "gradient", "raster", "markup", "redline",
+        "compare", "vault", "collaboration", "shrinkwrap",
+        "simplify", "substitute", "replace", "suppress", "exclude",
+        "include", "design assistant", "task scheduler", "migration",
+        "convert", "translate", "repair", "validate", "check", "analyze"
+    ],
+    "InventorClassPatterns": ["afx:400000:", "autodesk", "inventor"]
 }
