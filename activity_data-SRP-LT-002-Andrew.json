@@ -1,0 +1,22 @@
+﻿{
+    "Metadata":  {
+                     "UserName":  "Andrew",
+                     "ComputerName":  "SRP-LT-002",
+                     "Version":  "1.0",
+                     "ExportTime":  "2025-10-08 13:38:53"
+                 },
+    "TrackingData":  {
+                         "TestApp\\TestFile.txt":  {
+                                                       "DailyActivity":  {
+                                                                             "2025-10-08":  {
+                                                                                                "ContinuousSeconds":  20,
+                                                                                                "TotalActiveSeconds":  120,
+                                                                                                "LastSeenTime":  "2025-10-08 13:38:53",
+                                                                                                "Application":  "TestApp",
+                                                                                                "MouseClicks":  15,
+                                                                                                "KeyPresses":  45
+                                                                                            }
+                                                                         }
+                                                   }
+                     }
+}
