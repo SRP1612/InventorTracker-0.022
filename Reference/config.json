@@ -16,6 +16,12 @@
         "KeyPress": 3.0,
         "Continuous": 5.0
     },
+    "IncludedPrograms": [
+        "inventor",
+        "winword",
+        "excel",
+        "powerpnt"
+    ],
     "InventorDialogPatterns": [
         "extrude", "revolve", "sweep", "loft", "hole", "fillet", "chamfer",
         "shell", "thread", "pattern", "mirror", "sketch", "dimension",

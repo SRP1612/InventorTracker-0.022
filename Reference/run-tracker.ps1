@@ -32,7 +32,7 @@ catch {
 }
 
 # Validate configuration
-$requiredProperties = @('DataSourceFile', 'CsvExportFile', 'LoopIntervalSeconds', 'SaveIntervalSeconds', 'ExcludedPaths', 'ActivityWeights')
+$requiredProperties = @('DataSourceFile', 'CsvExportFile', 'LoopIntervalSeconds', 'SaveIntervalSeconds', 'ExcludedPaths', 'ActivityWeights', 'IncludedPrograms')
 $missingProperties = @()
 
 foreach ($prop in $requiredProperties) {
@@ -125,32 +125,91 @@ try {
     Write-Host "Tracker is running... Press Ctrl+C to stop and export CSV" -ForegroundColor Green
     Write-Host ""
 
-    function Get-ActiveInventorFile {
+    function Get-ActiveFile {
         param([string[]]$ExcludedPaths = @())
         
         try {
-            # Try to get the Inventor application COM object
-            $inventorApp = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Inventor.Application")
-            $activeDoc = $inventorApp.ActiveDocument
+            $hWnd = [UltraSensitiveDetector]::GetForegroundWindow()
+            $title = New-Object System.Text.StringBuilder 256
+            [UltraSensitiveDetector]::GetWindowText($hWnd, $title, $title.Capacity)
+            $windowTitle = $title.ToString()
             
-            if ($activeDoc) {
-                $filePath = $activeDoc.FullFileName
-                
-                # Filter out excluded paths
-                foreach ($excluded in $ExcludedPaths) {
-                    if ($filePath -like "*$excluded*") {
-                        Write-Verbose "Excluded file: $filePath (matches: $excluded)"
-                        return $null
+            # Try COM for known applications
+            try {
+                # Inventor
+                $inventorApp = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Inventor.Application")
+                $activeDoc = $inventorApp.ActiveDocument
+                if ($activeDoc) {
+                    $filePath = $activeDoc.FullFileName
+                    foreach ($excluded in $ExcludedPaths) {
+                        if ($filePath -like "*$excluded*") { return $null }
                     }
+                    Write-Verbose "Active Inventor file: $filePath"
+                    return $filePath
                 }
-                
-                Write-Verbose "Active Inventor file: $filePath"
-                return $filePath
+            } catch { }
+            
+            try {
+                # Word
+                $wordApp = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Word.Application")
+                $activeDoc = $wordApp.ActiveDocument
+                if ($activeDoc) {
+                    $filePath = $activeDoc.FullName
+                    foreach ($excluded in $ExcludedPaths) {
+                        if ($filePath -like "*$excluded*") { return $null }
+                    }
+                    Write-Verbose "Active Word file: $filePath"
+                    return $filePath
+                }
+            } catch { }
+            
+            try {
+                # Excel
+                $excelApp = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Excel.Application")
+                $activeWorkbook = $excelApp.ActiveWorkbook
+                if ($activeWorkbook) {
+                    $filePath = $activeWorkbook.FullName
+                    foreach ($excluded in $ExcludedPaths) {
+                        if ($filePath -like "*$excluded*") { return $null }
+                    }
+                    Write-Verbose "Active Excel file: $filePath"
+                    return $filePath
+                }
+            } catch { }
+            
+            try {
+                # PowerPoint
+                $pptApp = [System.Runtime.InteropServices.Marshal]::GetActiveObject("PowerPoint.Application")
+                $activePresentation = $pptApp.ActivePresentation
+                if ($activePresentation) {
+                    $filePath = $activePresentation.FullName
+                    foreach ($excluded in $ExcludedPaths) {
+                        if ($filePath -like "*$excluded*") { return $null }
+                    }
+                    Write-Verbose "Active PowerPoint file: $filePath"
+                    return $filePath
+                }
+            } catch { }
+            
+            # Fallback: Try to extract from title (for other apps)
+            $fileMatch = [regex]::Match($windowTitle, '(.+?)\s*-\s*.+')
+            if ($fileMatch.Success) {
+                $potentialFile = $fileMatch.Groups[1].Value.Trim()
+                # If it's a full path, check it
+                if ([System.IO.File]::Exists($potentialFile) -or [System.IO.Directory]::Exists($potentialFile)) {
+                    foreach ($excluded in $ExcludedPaths) {
+                        if ($potentialFile -like "*$excluded*") { return $null }
+                    }
+                    Write-Verbose "Active file from title: $potentialFile"
+                    return $potentialFile
+                }
             }
+            
+            Write-Verbose "No active file detected"
+            return $null
         }
         catch {
-            # Inventor is not running or no document is active
-            Write-Verbose "No active Inventor document: $_"
+            Write-Verbose "Error getting active file: $_"
         }
         
         return $null
@@ -171,10 +230,10 @@ try {
         }
         
         try {
-            # Check if Inventor is the active window
-            if (Test-InventorActive) {
-                # Get the currently active Inventor file
-                $activeFile = Get-ActiveInventorFile -ExcludedPaths $config.ExcludedPaths
+            # Check if the active program is in the included list
+            if (Test-ActiveProgram -IncludedPrograms $config.IncludedPrograms) {
+                # Get the currently active file
+                $activeFile = Get-ActiveFile -ExcludedPaths $config.ExcludedPaths
                 
                 if ($activeFile) {
                     # Get user input activity

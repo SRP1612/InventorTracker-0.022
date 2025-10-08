@@ -1,5 +1,5 @@
 # src/ActivityDetector.ps1
-# This module contains the core activity detection logic extracted from the original script
+# This module contains the core activity detection logic
 
 # Load configuration
 $configPath = Join-Path $PSScriptRoot "..\config.json"
@@ -10,8 +10,6 @@ using System;
 using System.Runtime.InteropServices;
 
 public class UltraSensitiveDetector {
-    public static string[] InventorDialogPatterns;
-    public static string[] InventorClassPatterns;
     [DllImport("user32.dll")]
     public static extern short GetAsyncKeyState(int vKey);
     
@@ -27,102 +25,9 @@ public class UltraSensitiveDetector {
     [DllImport("user32.dll")]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
     
-    [DllImport("user32.dll")]
-    public static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
-    
-    [DllImport("user32.dll")]
-    public static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
-    
-    [DllImport("user32.dll")]
-    public static extern bool IsWindowVisible(IntPtr hWnd);
-    
     public struct LASTINPUTINFO {
         public uint cbSize;
         public uint dwTime;
-    }
-    
-    // Enhanced Inventor detection that recognizes tool dialogs and sub-windows
-    public static bool IsInventorActive() {
-        IntPtr hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero) return false;
-        
-        System.Text.StringBuilder windowText = new System.Text.StringBuilder(256);
-        GetWindowText(hwnd, windowText, windowText.Capacity);
-        string title = windowText.ToString();
-        
-        // Get window class name for additional identification
-        System.Text.StringBuilder className = new System.Text.StringBuilder(256);
-        GetClassName(hwnd, className, className.Capacity);
-        string classNameStr = className.ToString();
-        
-        // PRIMARY CHECK: Main Inventor window (most reliable)
-        if (title.Contains("Autodesk Inventor")) {
-            return true;
-        }
-        
-        // SECONDARY CHECK: Get process to verify it's actually Inventor
-        uint processId;
-        GetWindowThreadProcessId(hwnd, out processId);
-        
-        try {
-            System.Diagnostics.Process process = System.Diagnostics.Process.GetProcessById((int)processId);
-            string processName = process.ProcessName.ToLower();
-            
-            // STRICT: Only if the process is actually "Inventor"
-            if (processName == "inventor" || processName.StartsWith("inventor.")) {
-                // Additional validation for known Inventor dialog patterns
-                if (IsInventorDialog(title, classNameStr)) {
-                    return true;
-                }
-            }
-        }
-        catch {
-            // Process access failed, don't assume it's Inventor
-        }
-        
-        return false;
-    }
-    
-    // Identify common Inventor tool dialogs and sub-windows
-    private static bool IsInventorDialog(string title, string className) {
-        // STRICT: Only check for SPECIFIC Inventor dialog titles (case-insensitive)
-        string lowerTitle = title.ToLower();
-        foreach (string pattern in InventorDialogPatterns) {
-            if (lowerTitle.Contains(pattern)) {
-                return true;
-            }
-        }
-        
-        // STRICT: Only very specific Inventor window class patterns
-        string lowerClassName = className.ToLower();
-        foreach (string pattern in InventorClassPatterns) {
-            if (lowerClassName.Contains(pattern)) {
-                // Additional check: make sure parent or owner window is Inventor
-                return HasInventorParent();
-            }
-        }
-        
-        return false;
-    }
-    
-    // Check if any visible Inventor window exists (fallback detection)
-    private static bool HasInventorParent() {
-        try {
-            System.Diagnostics.Process[] inventorProcesses = 
-                System.Diagnostics.Process.GetProcessesByName("Inventor");
-            
-            foreach (var process in inventorProcesses) {
-                if (process.MainWindowHandle != IntPtr.Zero && 
-                    IsWindowVisible(process.MainWindowHandle)) {
-                    return true;
-                }
-            }
-        }
-        catch {
-            // Process enumeration failed
-        }
-        
-        return false;
     }
     
     public static int GetNewMouseClicks() {
@@ -211,26 +116,43 @@ public class UltraSensitiveDetector {
 }
 "@
 
-# Set the patterns from config
-[UltraSensitiveDetector]::InventorDialogPatterns = $config.InventorDialogPatterns
-[UltraSensitiveDetector]::InventorClassPatterns = $config.InventorClassPatterns
-
 # PowerShell wrapper functions to make the C# code easy to use
-function Test-InventorActive {
+function Test-ActiveProgram {
     <#
     .SYNOPSIS
-    Checks if Autodesk Inventor is the currently active window
+    Checks if the currently active program is in the included list
     
-    .DESCRIPTION
-    Uses the UltraSensitiveDetector class to determine if Inventor is active,
-    including main windows and tool dialogs
+    .PARAMETER IncludedPrograms
+    Array of program names to track
     
     .EXAMPLE
-    if (Test-InventorActive) {
-        Write-Host "Inventor is active"
+    if (Test-ActiveProgram -IncludedPrograms $config.IncludedPrograms) {
+        Write-Host "Active program is tracked"
     }
     #>
-    return [UltraSensitiveDetector]::IsInventorActive()
+    param(
+        [Parameter(Mandatory)]
+        [string[]]$IncludedPrograms
+    )
+    
+    try {
+        $hWnd = [UltraSensitiveDetector]::GetForegroundWindow()
+        if ($hWnd -eq [IntPtr]::Zero) { return $false }
+        
+        # Get process ID and process name
+        $processId = 0
+        [UltraSensitiveDetector]::GetWindowThreadProcessId($hWnd, [ref]$processId)
+        
+        $process = [System.Diagnostics.Process]::GetProcessById($processId)
+        $processName = $process.ProcessName.ToLower()
+        
+        # Check if process name is in included list
+        return $processName -in $IncludedPrograms
+    }
+    catch {
+        Write-Verbose "Error checking active program: $_"
+        return $false
+    }
 }
 
 function Get-ActivityInput {
